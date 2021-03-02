@@ -10,13 +10,13 @@ docker-compose build (refresh build for the new Gemfile)
 
 Replace the contents of config/database.yml with the following:
 
-##########################################################
-default: &default
-  adapter: postgresql
-  encoding: unicode
-  host: db
-  username: postgres
-  password: password
+##########################################################<br />
+default: &default<br />
+  adapter: postgresql<br />
+  encoding: unicode<br />
+  host: db<br />
+  username: postgres<br />
+  password: password<br />
 ##########################################################
 
 docker-compose run web rails db:create
