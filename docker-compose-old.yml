@@ -1,0 +1,120 @@
+# Use the file format compatible with Docker Compose 3.8
+version: "3.8"
+
+# Each thing that Docker Compose runs is referred to as
+# a "service". In our case, our Rails application is one
+# service ("web") and our PostgreSQL database instance
+# is another service ("database").
+services:
+
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     args:
+  #       RUBY_VERSION: '2.6.6'
+  #       PG_MAJOR: '13'
+  #       NODE_MAJOR: '12'
+  #       YARN_VERSION: '1.22.4'
+  #       BUNDLER_VERSION: '2.1.4'
+  #   image: martians-library-dev:1.1.0
+  #   tmpfs:
+  #     - /tmp
+
+  database:
+    environment:
+      POSTGRES_PASSWORD: postgres
+    # Use the latest postgres base image for this container.
+    image: postgres
+    # environment:
+    #     - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+    #     - POSTGRES_USER=${DATABASE_USERNAME}
+    # ports:
+    #     - "5432:5432"
+    volumes:
+      # We need to tell Docker where on the PostgreSQL
+      # container we want to keep the PostgreSQL data.
+      # In this case we're telling it to use a directory
+      # called /var/lib/postgresql/data, although it
+      # conceivably could have been something else.
+      #
+      # We're associating this directory with something
+      # called a volume. (You can see all your Docker
+      # volumes by running +docker volume ls+.) The name
+      # of our volume is db_data.
+      - db_data:/var/lib/postgresql/data
+
+      # This copies our init.sql into our container, to
+      # a special file called
+      # /docker-entrypoint-initdb.d/init.sql. Anything
+      # at this location will get executed one per
+      # container, i.e. it will get executed the first
+      # time the container is created but not again.
+      #
+      # The init.sql file is a one-line that creates a
+      # user called (arbitrarily) boats_development.
+      # - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  web:
+    # The root directory from which we're building.
+    # Notice the UID and GID variables. They need to be set as ENV variables on the prod host (e.g.: Heroku) and need to have the same values as the ones used to build the image.
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        RUBY_VERSION: '2.6.6'
+        PG_MAJOR: '13'
+        NODE_MAJOR: '12'
+        YARN_VERSION: '1.22.5'
+        BUNDLER_VERSION: '2.1.4'
+        UID: ${UID}
+        GID: ${GID}
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    # command: bundle exec rails server -p 3000 -b '0.0.0.0'
+    # entrypoint: entrypoint.sh
+    # This makes it so any code changes inside the project
+    # directory get synced with Docker. Without this line,
+    # we'd have to restart the container every time we
+    # changed a file.
+    volumes:
+      - .:/app:cached
+      # - bundle:/usr/local/bundle
+      - node_modules:/app/node_modules
+      - packs:/app/public/packs
+      - rails_cache:/app/tmp/cache
+      - .psqlrc:/root/.psqlrc:ro
+
+    # Expose port 3000.
+    ports:
+      - "3000:3000"
+
+    # Specify that this container depends on the other
+    # container which we've called "database".
+    depends_on:
+      - database
+
+    image: rails-thelighthouse:1.5.4
+    tmpfs:
+      - /tmp
+
+    stdin_open: true
+    tty: true
+    # Specify the values of the environment variables
+    # used in this container.
+    environment:
+      RAILS_ENV: development
+      # POSTGRES_PASSWORD: postgres
+      # DATABASE_NAME: ${DATABASE_NAME}
+    #   DATABASE_USERNAME: ${DATABASE_USERNAME}
+    #   DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+    #   DATABASE_HOST: ${DATABASE_HOST}
+    #   DATABASE_PORT: ${DATABASE_PORT}
+      # RAILS_SERVE_STATIC_FILES: 1
+
+# Declare the volumes that our application uses.
+volumes:
+  db_data:
+  # bundle:
+  node_modules:
+  packs:
+  rails_cache:
