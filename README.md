@@ -1,7 +1,7 @@
 # docker-files-rails
-Docker files for new Rails app.
-Based on instructions from https://docs.docker.com/compose/rails/ .
-Differences:
+Docker files for new Rails app.<br />
+Based on instructions from https://docs.docker.com/compose/rails/ .<br />
+Differences:<br />
 1- Instead of manually changing the files' ownership, the Dockerfile creates a user based in the current user and changes files' ownership accordingly (and also executes some of the commands as that user). This also prevents that rails commands such as 'rails generate controller' creates files as root.<br />
 2- The DB volume is mounted differently (without referring to ./tmp/db) to avoid permission issues when rebuilding the image.<br />
 3- Base image is different and there are different dependencies.<br />
